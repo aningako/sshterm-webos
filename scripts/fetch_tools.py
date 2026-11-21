@@ -148,7 +148,7 @@ exec "$T/lib/%(loader)s" --library-path "$T/lib" --argv0 %(name)s "$T/libexec/%(
 '''
 
 ENV = '''# SSH Terminal tools environment (sourced by wrappers and the 'This TV' shell).
-[ -n "$T" ] || T=/media/developer/apps/usr/palm/applications/com.homebrew.sshterm/tools
+[ -n "$T" ] || T=${SSHTERM_TOOLS:-/media/developer/apps/usr/palm/applications/com.homebrew.sshterm/tools}
 case ":$PATH:" in *":$T/bin:"*) ;; *) PATH="$T/bin:$PATH" ;; esac
 export PATH
 export TERMINFO="$T/share/terminfo"
@@ -162,10 +162,21 @@ export NANORC="$T/etc/nanorc"
 LOGIN = '''#!/bin/sh
 # Forced command for the TV key on this TV's own root account: set up the tools, then run the shell/command.
 T=$(cd "$(dirname "$0")" && pwd)
-. "$T/env.sh"
+export SSHTERM_TOOLS="$T"
 cd "${HOME:-/}" 2>/dev/null
-if [ -n "$SSH_ORIGINAL_COMMAND" ]; then exec /bin/sh -c "$SSH_ORIGINAL_COMMAND"; fi
-for sh in /bin/bash /bin/sh; do [ -x "$sh" ] && exec "$sh" -l; done
+if [ -n "$SSH_ORIGINAL_COMMAND" ]; then . "$T/env.sh"; exec /bin/sh -c "$SSH_ORIGINAL_COMMAND"; fi
+# The TV's normal login environment first, then ours on top, so /etc/profile can't reset PATH.
+[ -r /etc/profile ] && . /etc/profile
+. "$T/env.sh"
+export ENV="$T/env.sh"                        # busybox sh re-applies it in the interactive shell
+[ -x /bin/bash ] && exec /bin/bash --rcfile "$T/shrc" -i
+exec /bin/sh -i
+'''
+
+SHRC = '''# bash rc for the 'This TV' shell: the usual rc files, then the SSH Terminal tools on top.
+[ -r /etc/bash.bashrc ] && . /etc/bash.bashrc
+[ -r "$HOME/.bashrc" ] && . "$HOME/.bashrc"
+. "${SSHTERM_TOOLS:-/media/developer/apps/usr/palm/applications/com.homebrew.sshterm/tools}/env.sh"
 '''
 
 
@@ -226,6 +237,7 @@ def main():
 
     open(os.path.join(OUT, 'env.sh'), 'w').write(ENV % {'vimdir': vimdir})
     open(os.path.join(OUT, 'login.sh'), 'w').write(LOGIN)
+    open(os.path.join(OUT, 'shrc'), 'w').write(SHRC)
     for p in [os.path.join(OUT, 'bin', x) for x in os.listdir(os.path.join(OUT, 'bin'))] + [os.path.join(OUT, 'login.sh')]:
         os.chmod(p, 0o755)
 

@@ -8,6 +8,8 @@ An SSH client for LG webOS TVs. It gives you a full-screen terminal you can use 
 
 > **Status (v1.0.0):** fully tested in the desktop simulator (`tools/sim`). Testing on a real LG TV is pending, and screenshots from the TV will be added here once that's done.
 
+**Requirements:** LG TV with **webOS 5 or newer** (2020+ models, or older models updated to it). The SSH library needs Node.js 10.16+, which webOS 4.x doesn't have; on those TVs the app says so.
+
 ## Does it need a rooted TV?
 
 **No.** Connecting to other servers works on any LG TV that can install homebrew apps.

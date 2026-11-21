@@ -45,7 +45,7 @@ index = {
         'iconUri': manifest['iconUri'],
         'manifestUrl': RAW + '/repo/manifest.json',
         'manifest': manifest,
-        'requirements': {'webosRelease': '>=4.0'},
+        'requirements': {'webosRelease': '>=5.0'},
         'shortDescription': description,
     }],
 }

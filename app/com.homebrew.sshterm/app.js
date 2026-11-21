@@ -112,7 +112,7 @@
 
   // ---------- screens ----------
   var current = 'hosts';
-  window.__sim = { get current() { return current; }, get focused() { return focused; } };
+  window.__sim = { get current() { return current; }, get focused() { return focused; }, get term() { return term; } };
   function show(id, sel) {
     ['hosts', 'edit', 'keyscreen', 'termscreen'].forEach(function (s) { $(s).classList.toggle('hidden', s !== id); });
     current = id;
@@ -121,7 +121,7 @@
   }
 
   // ---------- modal ----------
-  var modalCb = null;
+  var modalCb = null, modalSess = null;
   function modal(opts) {
     // opts: {title, html, inputs:[{id,label,type,value}], buttons:[{label, value, cls}], onClose(value, inputs)}
     $('m-title').textContent = opts.title || '';
@@ -258,6 +258,7 @@
     var body = tvkey.publicKey.split(' ')[1];
     var cmd = 'H=$(awk -F: \'$1=="root"{print $6}\' /etc/passwd); [ -n "$H" ] || H=/home/root; ' +
       'mkdir -p "$H/.ssh" && chmod 700 "$H/.ssh" && touch "$H/.ssh/authorized_keys" && chmod 600 "$H/.ssh/authorized_keys" && ' +
+      '{ [ ! -s "$H/.ssh/authorized_keys" ] || [ -z "$(tail -c1 "$H/.ssh/authorized_keys")" ] || echo >> "$H/.ssh/authorized_keys"; } && ' +
       '{ grep -qF \'' + body + '\' "$H/.ssh/authorized_keys" || echo \'' + line + '\' >> "$H/.ssh/authorized_keys"; } && ' +
       'chmod 755 ' + TOOLS + '/login.sh ' + TOOLS + '/bin/* ' + TOOLS + '/libexec/* ' + TOOLS + '/lib/ld-musl-armhf.so.1 2>/dev/null; echo SSHTERM_OK';
     toast('Setting up This TV…', 6000);
@@ -294,11 +295,27 @@
     });
     window.addEventListener('resize', function () { if (current === 'termscreen') fit.fit(); });
   }
+  // Writes go one at a time (luna doesn't promise order across calls) and in 8 KB pieces
+  // (no huge luna messages), never splitting an emoji's surrogate pair.
+  var outQ = '', outBusy = false;
   function send(d) {
     if (!sess || !sess.sid || sess.closed || !d) return;
-    luna('write', { sid: sess.sid, data: d });
+    outQ += d; pump();
+  }
+  function pump() {
+    if (outBusy || !outQ || !sess || sess.closed) { if (sess && sess.closed) outQ = ''; return; }
+    var n = Math.min(outQ.length, 8192), c = outQ.charCodeAt(n - 1);
+    if (n < outQ.length && c >= 0xD800 && c <= 0xDBFF) n--;
+    var chunk = outQ.slice(0, n), s = sess;
+    outQ = outQ.slice(n); outBusy = true;
+    luna('write', { sid: s.sid, data: chunk }, function () { outBusy = false; if (s === sess) pump(); else outQ = ''; });
   }
   function termWrite(s) { term.write(s); }
+  function ack(s, n) {
+    s.drawn = (s.drawn || 0) + n;
+    if (s.drawn >= 32768 && !s.closed && s.sid) { luna('ack', { sid: s.sid, bytes: s.drawn }); s.drawn = 0; }
+    else if (!s.ackTimer) s.ackTimer = setTimeout(function () { s.ackTimer = null; if (s.drawn && !s.closed && s.sid) { luna('ack', { sid: s.sid, bytes: s.drawn }); s.drawn = 0; } }, 100);
+  }
 
   function connect(h, password) {
     if (h.auth === 'tvkey' && !tvkey) {
@@ -332,9 +349,10 @@
     }
     if (r.sid) s.sid = r.sid;
     switch (r.event) {
-      case 'data': termWrite(r.data); break;
+      case 'data': (function (len) { term.write(r.data, function () { ack(s, len); }); })(r.data.length); break;
       case 'ready': s.ready = true; break;
       case 'hostkey':
+        modalSess = s;
         modal({ title: r.changed ? 'WARNING: server key changed' : 'New server',
           html: (r.changed ? '<p class="warn">The key of ' + esc(s.host.host) + ' is different from last time. Someone may be intercepting the connection, or the server was reinstalled.</p>'
             : '<p>First connection to <b>' + esc(s.host.host) + '</b>. Check that this fingerprint is right:</p>') +
@@ -347,6 +365,7 @@
           } });
         break;
       case 'auth-prompt':
+        modalSess = s;
         modal({ title: r.name || 'Sign in', html: r.instructions ? esc(r.instructions) : '',
           inputs: r.prompts.map(function (pr, i) { return { id: 'p' + i, label: pr.prompt, type: pr.echo ? 'text' : 'password', value: '' }; }),
           buttons: [{ label: 'OK', value: true, cls: 'primary' }, { label: 'Cancel', value: false }],
@@ -365,6 +384,8 @@
     if (s.closed) return;
     s.closed = true;
     s.bridge && s.bridge.cancel();
+    if (modalSess === s && !$('modal').classList.contains('hidden')) closeModal(false);
+    modalSess = null;
     termWrite('\r\n\x1b[33m[' + (reason || 'Closed') + '] OK = reconnect · Back = menu\x1b[0m\r\n');
     if (s.authFailed && s.host.local) {
       modal({ title: 'This TV isn\'t set up yet', html: 'The TV key has to be added to the TV\'s root account once. Do it now?',
@@ -387,7 +408,7 @@
     ['Copy all', function () { copyScreen(true); }],
     ['Esc', '\x1b'], ['Tab', '\t'], ['Ctrl', 'ctrl'], ['Alt', 'alt'],
     ['^C', '\x03'], ['^D', '\x04'], ['^Z', '\x1a'], ['^L', '\x0c'], ['^R', '\x12'], ['^A', '\x01'],
-    ['PgUp', '\x1b[5~'], ['PgDn', '\x1b[6~'], ['Home', '\x1b[H'], ['End', '\x1b[F'],
+    ['PgUp', '\x1b[5~'], ['PgDn', '\x1b[6~'], ['Home', 'home'], ['End', 'end'],
     ['A−', function () { setFont(fontSize - 2); }], ['A+', function () { setFont(fontSize + 2); }],
     ['Install TV key', function () { installKey(); }],
     ['Reconnect', function () { hideBar(); if (sess) connect(sess.host, sess.password); }],
@@ -404,6 +425,7 @@
         var a = item[1];
         if (typeof a === 'function') return a();
         if (a === 'ctrl' || a === 'alt') { sticky[a] = !sticky[a]; b.classList.toggle('on', sticky[a]); if (sticky[a]) { hideBar(); toast(item[0] + ' held for the next key'); } return; }
+        if (a === 'home' || a === 'end') a = (term.modes.applicationCursorKeysMode ? '\x1bO' : '\x1b[') + (a === 'home' ? 'H' : 'F');
         send(a); hideBar();
       };
       row.appendChild(b);
@@ -482,20 +504,25 @@
     var mod = 1 + (shift ? 1 : 0) + (alt ? 2 : 0) + (ctrl ? 4 : 0);
     var app = term.modes.applicationCursorKeysMode;
     var arrows = { 38: 'A', 40: 'B', 39: 'C', 37: 'D' };
+    function tilde(n) { return mod > 1 ? '\x1b[' + n + ';' + mod + '~' : '\x1b[' + n + '~'; }
     if (arrows[e.keyCode]) return mod > 1 ? '\x1b[1;' + mod + arrows[e.keyCode] : (app ? '\x1bO' : '\x1b[') + arrows[e.keyCode];
     switch (e.keyCode) {
       case 13: return alt ? '\x1b\r' : '\r';
       case 8: return ctrl ? '\x08' : (alt ? '\x1b\x7f' : '\x7f');
       case 9: return shift ? '\x1b[Z' : '\t';
       case 27: return '\x1b';
-      case 33: return '\x1b[5~';
-      case 34: return '\x1b[6~';
+      case 33: return tilde(5);
+      case 34: return tilde(6);
       case 35: return mod > 1 ? '\x1b[1;' + mod + 'F' : (app ? '\x1bOF' : '\x1b[F');
       case 36: return mod > 1 ? '\x1b[1;' + mod + 'H' : (app ? '\x1bOH' : '\x1b[H');
-      case 45: return '\x1b[2~';
-      case 46: return '\x1b[3~';
+      case 45: return tilde(2);
+      case 46: return tilde(3);
     }
-    if (FKEYS[e.keyCode]) return FKEYS[e.keyCode];
+    if (FKEYS[e.keyCode]) {
+      var f = FKEYS[e.keyCode];
+      if (mod === 1) return f;
+      return f.charAt(1) === 'O' ? '\x1b[1;' + mod + f.charAt(2) : f.slice(0, -1) + ';' + mod + '~';
+    }
     if (e.key && e.key.length === 1 && !e.metaKey) return applyMods(e.key, ctrl, alt);
     return null;
   }
@@ -558,7 +585,7 @@
     if (kc === K.BACK) {
       e.preventDefault();
       if (current === 'hosts') {
-        if (Date.now() - backArmed < 2500) { try { window.close(); } catch (x) {} return; }
+        if (Date.now() - backArmed < 2500) { try { if (window.PalmSystem && PalmSystem.platformBack) PalmSystem.platformBack(); else window.close(); } catch (x) { window.close(); } return; }
         backArmed = Date.now(); return toast('Press Back again to exit');
       }
       return show('hosts');
@@ -584,5 +611,8 @@
   try { $('ver').textContent = JSON.parse(PalmSystem.appInfo || '{}').version || '1.0.0'; } catch (e) { $('ver').textContent = '1.0.0'; }
   // Make sure the font is ready before xterm measures cells.
   if (document.fonts && document.fonts.load) document.fonts.load(fontSize + 'px TermMono').catch(function () {});
-  luna('version', {}, function (r) { if (!r.returnValue) console.warn('service:', r.errorText); });
+  luna('version', {}, function (r) {
+    if (!r.returnValue) return console.warn('service:', r.errorText);
+    if (r.ssh2 === false) alertBox('Not supported on this TV', esc(r.error));
+  });
 })();
