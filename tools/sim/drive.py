@@ -18,7 +18,15 @@ REMOTE = {'LEFT': 37, 'UP': 38, 'RIGHT': 39, 'DOWN': 40, 'OK': 13, 'BACK': 461, 
 NAMES = {37: 'ArrowLeft', 38: 'ArrowUp', 39: 'ArrowRight', 40: 'ArrowDown', 13: 'Enter', 8: 'Backspace', 9: 'Tab', 27: 'Escape'}
 
 
+TV = os.environ.get('SSHTERM_TV')   # e.g. 192.168.100.110:9998 -> drive the app on a real TV's web inspector
+
+
 def ws_url():
+    if TV:
+        for p in json.load(urllib.request.urlopen('http://%s/json' % TV, timeout=5)):
+            if p.get('description') == 'com.homebrew.sshterm' and p.get('type') == 'page':
+                return p['webSocketDebuggerUrl']
+        sys.exit('SSH Terminal is not running on the TV')
     for p in json.load(urllib.request.urlopen('http://127.0.0.1:%d/json' % PORT, timeout=5)):
         if p.get('type') == 'page':
             return p['webSocketDebuggerUrl']
@@ -28,7 +36,8 @@ class CDP:
     def __init__(self):
         self.ws = websocket.create_connection(ws_url(), timeout=30, suppress_origin=True)
         self.n = 0
-        self.call('Emulation.setDeviceMetricsOverride', width=1920, height=1080, deviceScaleFactor=1, mobile=False)
+        if not TV:
+            self.call('Emulation.setDeviceMetricsOverride', width=1920, height=1080, deviceScaleFactor=1, mobile=False)
 
     def call(self, method, **params):
         self.n += 1

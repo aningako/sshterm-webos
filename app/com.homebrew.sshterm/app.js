@@ -13,7 +13,7 @@
   var hosts = load('hosts', []);
   var tvkey = load('tvkey', null);
   var clip = load('clipboard', '');
-  var fontSize = load('fontSize', 22);
+  var fontSize = load('fontSize', 20);
   var localFp = load('localFp', null);
 
   // ---------- helpers ----------
@@ -145,6 +145,7 @@
       (opts.inputs || []).forEach(function (inp) { vals[inp.id] = $('mi-' + inp.id).value; });
       opts.onClose && opts.onClose(v, vals);
     };
+    $('modal').classList.toggle('top', !!(opts.inputs && opts.inputs.length));
     $('modal').classList.remove('hidden');
     focusFirst($('modal'), opts.focus);
   }
@@ -283,7 +284,12 @@
     fit = new FitAddon.FitAddon();
     term.loadAddon(fit);
     term.open($('term'));
-    try { term.loadAddon(new CanvasAddon.CanvasAddon()); } catch (e) { /* DOM renderer fallback */ }
+    // Canvas renderer only off the TV: webOS reports devicePixelRatio 2 for a 1920x1080 page that is really
+    // 1:1, and the canvas renderer then drew everything twice as large and cut off half the terminal.
+    // The DOM renderer lays text out with CSS, so it is right whatever the ratio says.
+    if (typeof PalmSystem === 'undefined' || PalmSystem.simulator) {
+      try { term.loadAddon(new CanvasAddon.CanvasAddon()); } catch (e) { /* DOM renderer fallback */ }
+    }
     // We read the keyboard ourselves (document keydown) so the TV's on-screen keyboard never pops up over the terminal.
     var ta = term.textarea;
     if (ta) { ta.setAttribute('tabindex', '-1'); ta.setAttribute('inputmode', 'none'); ta.addEventListener('focus', function () { ta.blur(); }); }
@@ -413,6 +419,7 @@
     ['Install TV key', function () { installKey(); }],
     ['Reconnect', function () { hideBar(); if (sess) connect(sess.host, sess.password); }],
     ['Hosts', function () { hideBar(); disconnect(); renderHosts(); show('hosts'); }],
+    ['Exit app', function () { exitApp(); }],
     ['✕ Close', function () { hideBar(); }],
   ];
   function buildBar() {
@@ -536,7 +543,21 @@
   }
 
   // ---------- global key handling ----------
+  // Back twice quickly exits, from the home screen or the terminal (first Back there opens the menu).
   var backArmed = 0;
+  function exitApp() {
+    try { disconnect(); } catch (x) {}
+    try { window.close(); } catch (x) {}
+    // (if the platform ignored close(), send the app to the background instead)
+    setTimeout(function () {
+      try { if (window.webOSSystem && webOSSystem.platformBack) return webOSSystem.platformBack(); } catch (x) {}
+      try { if (window.PalmSystem && PalmSystem.platformBack) PalmSystem.platformBack(); } catch (x) {}
+    }, 300);
+  }
+  function backTwice() {
+    if (Date.now() - backArmed < 2000) { backArmed = 0; exitApp(); return true; }
+    backArmed = Date.now(); return false;
+  }
   document.addEventListener('keydown', function (e) {
     var kc = e.keyCode;
     var ae = document.activeElement;
@@ -556,12 +577,12 @@
       var barOpen = !$('bar').classList.contains('hidden');
       if (barOpen) {
         e.preventDefault();
-        if (kc === K.BACK) return hideBar();
+        if (kc === K.BACK) { if (Date.now() - backArmed < 2000) { backArmed = 0; return exitApp(); } backArmed = 0; return hideBar(); }
         if (kc >= 37 && kc <= 40) return move(kc);
         if (kc === K.OK && focused) return focused.click();
         return;
       }
-      if (kc === K.BACK) { e.preventDefault(); return showBar(); }
+      if (kc === K.BACK) { e.preventDefault(); backTwice(); toast('Press Back again to exit', 2000); return showBar(); }
       if (kc === K.RED) { e.preventDefault(); return send('\x03'); }
       if (kc === K.GREEN) { e.preventDefault(); return send('\t'); }
       if (kc === K.YELLOW) { e.preventDefault(); return send('\x1b'); }
@@ -585,8 +606,8 @@
     if (kc === K.BACK) {
       e.preventDefault();
       if (current === 'hosts') {
-        if (Date.now() - backArmed < 2500) { try { if (window.PalmSystem && PalmSystem.platformBack) PalmSystem.platformBack(); else window.close(); } catch (x) { window.close(); } return; }
-        backArmed = Date.now(); return toast('Press Back again to exit');
+        if (backTwice()) return;
+        return toast('Press Back again to exit', 2000);
       }
       return show('hosts');
     }

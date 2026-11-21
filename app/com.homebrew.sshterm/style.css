@@ -56,8 +56,9 @@ textarea { height: 170px; font-family: TermMono, monospace; font-size: 18px; res
 
 /* terminal: whole screen, menu floats over it */
 #termscreen { background: #000; }
-#term { position: absolute; inset: 0; padding: 6px 8px; }
-#term .xterm { height: 100%; }
+#term { position: absolute; inset: 0; }
+/* padding on .xterm itself: the fit addon subtracts it there (on #term it counted as usable space -> last row cut off) */
+#term .xterm { height: 100%; padding: 6px 8px; }
 #term .xterm-viewport { overflow-y: hidden; }
 #bar { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 24px 14px; background: rgba(11, 18, 32, .94);
   border-top: 2px solid var(--line); }
@@ -68,6 +69,8 @@ textarea { height: 170px; font-family: TermMono, monospace; font-size: 18px; res
 
 /* modal + toast */
 #modal { position: absolute; inset: 0; background: rgba(0, 0, 0, .6); display: flex; align-items: center; justify-content: center; z-index: 10; }
+/* dialogs with a text field sit at the top: the TV's on-screen keyboard covers the lower ~40% */
+#modal.top { align-items: flex-start; padding-top: 70px; }
 #modal .box { background: var(--panel); border: 2px solid var(--line); border-radius: 22px; padding: 44px 54px; width: 1200px; max-height: 960px; overflow: hidden; }
 #modal h3 { margin: 0 0 22px; font-size: 42px; }
 #m-body { color: var(--muted); line-height: 1.4; }

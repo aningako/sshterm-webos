@@ -29,7 +29,7 @@ BINARIES = {  # wrapper name -> (path inside rootfs, extra args)
     'vim': ('usr/bin/vim', []), 'vi': ('usr/bin/vim', []), 'xxd': ('usr/bin/xxd', []),
     'nano': ('usr/bin/nano', []), 'curl': ('usr/bin/curl', []), 'wget': ('usr/bin/wget', []),
 }
-VIM_DROP = {'doc', 'tutor', 'lang', 'spell', 'print', 'keymap', 'pack', 'tools', 'macros'}
+VIM_DROP = {'doc', 'tutor', 'lang', 'spell', 'print', 'keymap', 'tools', 'macros'}   # (keep pack/: vim 9.2 loads netrw from it)
 
 
 def fetch(url, dest):
@@ -166,10 +166,15 @@ export SSHTERM_TOOLS="$T"
 cd "${HOME:-/}" 2>/dev/null
 if [ -n "$SSH_ORIGINAL_COMMAND" ]; then . "$T/env.sh"; exec /bin/sh -c "$SSH_ORIGINAL_COMMAND"; fi
 # The TV's normal login environment first, then ours on top, so /etc/profile can't reset PATH.
+# (webOS's profile also sets TERM=linux; keep the terminal type the SSH client asked for.)
+term="$TERM"
 [ -r /etc/profile ] && . /etc/profile
+[ -n "$term" ] && TERM="$term" && export TERM
 . "$T/env.sh"
 export ENV="$T/env.sh"                        # busybox sh re-applies it in the interactive shell
-[ -x /bin/bash ] && exec /bin/bash --rcfile "$T/shrc" -i
+# Real bash only: on webOS /bin/bash is a link to busybox, which has no --rcfile.
+# (busybox ignores --version and would sit reading stdin, so ask for $BASH_VERSION with stdin closed)
+if [ -x /bin/bash ] && [ -n "$(/bin/bash -c 'echo $BASH_VERSION' </dev/null 2>/dev/null)" ]; then exec /bin/bash --rcfile "$T/shrc" -i; fi
 exec /bin/sh -i
 '''
 

@@ -6,7 +6,10 @@ An SSH client for LG webOS TVs. It gives you a full-screen terminal you can use 
 
 **Created by aning with Claude.**
 
-> **Status (v1.0.0):** fully tested in the desktop simulator (`tools/sim`). Testing on a real LG TV is pending, and screenshots from the TV will be added here once that's done.
+> **Tested on a real LG TV:** LG 50UR7550, webOS 10.3.1 (rooted, Homebrew Channel). The screenshots below were taken on that TV.
+> The SSH client itself doesn't use root, but it hasn't been tried on a non-rooted TV yet. Reports welcome.
+
+<p align="center"><img src="docs/screenshots/tv/this-tv-tools.png" width="49%" alt="This TV shell with vim, nano, curl, wget, netstat"> <img src="docs/screenshots/tv/vim.png" width="49%" alt="vim on the TV"></p>
 
 **Requirements:** LG TV with **webOS 5 or newer** (2020+ models, or older models updated to it). The SSH library needs Node.js 10.16+, which webOS 4.x doesn't have; on those TVs the app says so.
 
@@ -42,6 +45,7 @@ Then install **SSH Terminal** from the list.
 | Remote | In the terminal |
 |---|---|
 | Arrows / OK | Arrow keys / Enter |
+| **Back twice** (quickly) | Exit the app (also on the home screen, or *Exit app* in the menu) |
 | **Back** | Open the menu (Type…, Paste, Copy screen, Copy all, Esc, Tab, Ctrl, Alt, ^C ^D ^Z ^L ^R ^A, PgUp/PgDn, Home/End, font size, Install TV key, Reconnect, Hosts) |
 | Red / Green / Yellow / Blue | Ctrl+C / Tab / Esc / **Type…** (opens the on-screen keyboard to send text) |
 | CH+ / CH− | Page Up / Page Down |
@@ -65,6 +69,14 @@ Without root, the app shows the line to add by hand.
 - Server host keys are checked (SHA256 fingerprint). You confirm a new server once, and you get a loud warning if its key ever changes.
 - Saved passwords, the TV key and the clipboard are stored in the app's local storage on the TV. Leave the password empty to be asked each time.
 - On the TV's own root account, the TV key is limited to running `tools/login.sh`.
+
+## Screenshots on the TV (LG 50UR7550)
+
+| | |
+|---|---|
+| ![Home](docs/screenshots/tv/home.png) | ![This TV: the bundled tools](docs/screenshots/tv/this-tv-tools.png) |
+| ![vim](docs/screenshots/tv/vim.png) | ![nano](docs/screenshots/tv/nano.png) |
+| ![Select to copy + the menu](docs/screenshots/tv/copy-and-menu.png) | ![Type… with the TV's on-screen keyboard](docs/screenshots/tv/tv-keyboard.png) |
 
 ## Screenshots (desktop simulator, 1920×1080)
 

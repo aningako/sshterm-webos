@@ -1,0 +1,15 @@
+{
+  "id": "com.homebrew.sshterm",
+  "version": "1.0.0",
+  "type": "web",
+  "title": "SSH Terminal",
+  "appDescription": "SSH client for LG webOS TVs: full-screen terminal (xterm), works with the Magic Remote or a USB/Bluetooth keyboard, copy/paste, TV key for password-free sign-in. No root needed for SSH; rooted TVs also get a \"This TV\" shell with vim, nano, curl, wget and netstat. Created by aning with Claude.",
+  "iconUri": "https://raw.githubusercontent.com/aningako/sshterm-webos/main/app/com.homebrew.sshterm/largeIcon.png",
+  "sourceUrl": "https://github.com/aningako/sshterm-webos",
+  "rootRequired": false,
+  "ipkUrl": "https://github.com/aningako/sshterm-webos/releases/download/v1.0.0/com.homebrew.sshterm_1.0.0_all.ipk",
+  "ipkHash": {
+    "sha256": "0df9df216a090bf92954f0bd21b1d7b52c440bb234476675c8f555878405fb00"
+  },
+  "ipkSize": 11289398
+}
