@@ -40,6 +40,29 @@ Then install **SSH Terminal** from the list.
 **Manually:** download the `.ipk` from [Releases](https://github.com/aningako/sshterm-webos/releases), then run
 `ares-install com.homebrew.sshterm_<version>_all.ipk`, or install it with the webOS Dev Manager.
 
+### Non-rooted TV (LG Developer Mode)
+
+No root needed for SSH to servers; only "This TV" needs a rooted TV. You install it through LG's own **Developer Mode**:
+
+1. Create a free account on the [LG webOS TV Developer site](https://webostv.developer.lge.com/).
+2. On the TV, install the **Developer Mode** app from LG's app store. Open it, sign in with that account, and turn on **Dev Mode Status**. The TV restarts.
+3. Open Developer Mode again and turn on **Key Server**.
+4. Install the app from a computer, either with [webOS Dev Manager](https://github.com/webosbrew/dev-manager-desktop) (add the TV, then install the `.ipk` from the
+   [latest release](https://github.com/aningako/sshterm-webos/releases/latest)), or with LG's webOS CLI:
+   ```sh
+   ares-setup-device                          # add the TV: its IP, port 9922, user "prisoner"
+   ares-novacom --device <tv> --getkey        # enter the passphrase shown in the Developer Mode app
+   ares-install --device <tv> com.homebrew.sshterm_<version>_all.ipk
+   ```
+   Homebrew Channel can also be installed this way, and then the repository above works too (its root-only features stay off).
+
+**Keep the Developer Mode session alive.** Developer Mode lasts a limited time; the app shows the remaining time and has an **EXTEND** button
+(the TV must be online). LG's rules ([source](https://webostv.developer.lge.com/develop/getting-started/developer-mode-app)): once the time has run out
+it can't be extended, and when Developer Mode turns off (after a restart with no time left, or ten restarts without a network connection), the apps
+installed with it are **uninstalled**. That is LG's limit, not this app's; reinstall the `.ipk` after turning Developer Mode back on.
+webOS Dev Manager can schedule the renewal for you.
+
+
 ## Using it
 
 | Remote | In the terminal |
