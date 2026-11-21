@@ -1,0 +1,10 @@
+# generated: python3 scripts/fetch_tools.py (armv7 binaries from Alpine, ~25 MB)
+/app/com.homebrew.sshterm/tools/
+/build/
+# built packages: attach to GitHub Releases
+/releases/*.ipk
+*.log
+.DS_Store
+# test fixtures of dependencies (contain dummy private keys; not needed at runtime)
+/service/com.homebrew.sshterm.service/node_modules/**/test/
+/service/com.homebrew.sshterm.service/node_modules/**/examples/

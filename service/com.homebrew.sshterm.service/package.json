@@ -1,0 +1,9 @@
+{
+  "name": "com.homebrew.sshterm.service",
+  "version": "1.0.0",
+  "description": "SSH bridge service for the SSH Terminal webOS app",
+  "main": "service.js",
+  "dependencies": {
+    "ssh2": "1.16.0"
+  }
+}

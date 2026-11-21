@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, height=1080">
+<!-- SSH Terminal for webOS. Created by aning with Claude. -->
+<title>SSH Terminal</title>
+<link rel="stylesheet" href="lib/xterm.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Host list -->
+<section id="hosts" class="screen">
+  <header>
+    <img src="largeIcon.png" alt="">
+    <div><h1>SSH Terminal</h1><p>Pick a server. OK = connect &nbsp;·&nbsp; Right = edit</p></div>
+  </header>
+  <div id="host-list"></div>
+  <footer>Created by aning with Claude &nbsp;·&nbsp; v<span id="ver"></span></footer>
+</section>
+
+<!-- Add / edit host -->
+<section id="edit" class="screen hidden">
+  <h2 id="edit-title">Add host</h2>
+  <div class="form">
+    <label>Name<input id="f-name" class="f" placeholder="My server"></label>
+    <label>Host / IP<input id="f-host" class="f" placeholder="192.168.1.10" autocapitalize="off" spellcheck="false"></label>
+    <label>Port<input id="f-port" class="f" type="number" value="22"></label>
+    <label>Username<input id="f-user" class="f" placeholder="root" autocapitalize="off" spellcheck="false"></label>
+    <label>Sign in with
+      <div class="seg" id="f-auth">
+        <button class="f" data-v="password">Password</button>
+        <button class="f" data-v="tvkey">TV key</button>
+        <button class="f" data-v="custom">Own private key</button>
+      </div>
+    </label>
+    <label id="row-pass">Password <small>(leave empty to be asked each time)</small><input id="f-pass" class="f" type="password"></label>
+    <label id="row-key" class="hidden">Private key (OpenSSH/PEM, paste it)<textarea id="f-key" class="f" spellcheck="false"></textarea></label>
+    <label id="row-kpass" class="hidden">Key passphrase <small>(optional)</small><input id="f-kpass" class="f" type="password"></label>
+    <div class="buttons">
+      <button id="e-save" class="f primary">Save</button>
+      <button id="e-cancel" class="f">Cancel</button>
+      <button id="e-delete" class="f danger">Delete</button>
+    </div>
+  </div>
+</section>
+
+<!-- TV key -->
+<section id="keyscreen" class="screen hidden">
+  <h2>TV key</h2>
+  <p>This TV's own SSH key. Sign in to a server once with a password, then open the menu (Back) and pick
+     <b>Install TV key</b>, and you won't have to type the password again. You can also copy the public key and paste it anywhere.</p>
+  <pre id="pubkey">(no key yet)</pre>
+  <div class="buttons">
+    <button id="k-gen" class="f primary">Generate key</button>
+    <button id="k-copy" class="f">Copy public key</button>
+    <button id="k-local" class="f">Set up "This TV" shell</button>
+    <button id="k-back" class="f">Back</button>
+  </div>
+</section>
+
+<!-- Terminal: fills the whole screen -->
+<section id="termscreen" class="screen hidden">
+  <div id="term"></div>
+  <div id="bar" class="hidden">
+    <div class="row" id="bar-row"></div>
+    <div class="hint">Back = close menu &nbsp;·&nbsp; Red ^C · Green Tab · Yellow Esc · Blue Type &nbsp;·&nbsp; Pointer: drag to select (copies), wheel scrolls</div>
+  </div>
+</section>
+
+<!-- Modal -->
+<div id="modal" class="hidden"><div class="box">
+  <h3 id="m-title"></h3>
+  <div id="m-body"></div>
+  <div id="m-buttons" class="buttons"></div>
+</div></div>
+
+<div id="toast" class="hidden"></div>
+
+<script src="lib/xterm.js"></script>
+<script src="lib/addon-fit.js"></script>
+<script src="lib/addon-canvas.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

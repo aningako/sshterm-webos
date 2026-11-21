@@ -1,0 +1,10 @@
+{
+  "id": "com.homebrew.sshterm.service",
+  "description": "SSH bridge for the SSH Terminal app",
+  "services": [
+    {
+      "name": "com.homebrew.sshterm.service",
+      "description": "SSH bridge for the SSH Terminal app"
+    }
+  ]
+}
